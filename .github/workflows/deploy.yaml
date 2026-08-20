@@ -28,7 +28,6 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push image to ECR
-        id: build-image
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
@@ -52,13 +51,5 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key.pem
           chmod 600 ~/.ssh/deploy_key.pem
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key.pem ubuntu@${{ secrets.EC2_HOST }} << ENDSSH
-            kubectl delete secret ecr-secret --ignore-not-found
-            kubectl create secret docker-registry ecr-secret \
-              --docker-server=${{ env.ECR_REGISTRY }} \
-              --docker-username=AWS \
-              --docker-password=\$(aws ecr get-login-password --region ${{ env.AWS_REGION }})
-            kubectl set image deployment/k8s-demo-app k8s-demo-app=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
-            kubectl rollout status deployment/k8s-demo-app
-          ENDSSH
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key.pem ubuntu@${{ secrets.EC2_HOST }} "kubectl delete secret ecr-secret --ignore-not-found && kubectl create secret docker-registry ecr-secret --docker-server=${{ env.ECR_REGISTRY }} --docker-username=AWS --docker-password=\$(aws ecr get-login-password --region ${{ env.AWS_REGION }}) && kubectl set image deployment/k8s-demo-app k8s-demo-app=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} && kubectl rollout status deployment/k8s-demo-app"
 EOF
